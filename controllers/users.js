@@ -10,6 +10,7 @@ const getUsers = (req, res) => {
       }
       res.send({ data: users });
     })
+    .then((users) => res.send({ data: users }))
     .catch((err) => {
       if (err.name === 'DocumentNotFoundError') {
         res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Пользователи не найдены' });
