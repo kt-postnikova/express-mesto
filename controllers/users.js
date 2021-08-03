@@ -10,7 +10,6 @@ const getUsers = (req, res) => {
       }
       res.send({ data: users });
     })
-    .then((users) => res.send({ data: users }))
     .catch((err) => {
       if (err.name === 'DocumentNotFoundError') {
         res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Пользователи не найдены' });
@@ -22,9 +21,14 @@ const getUsers = (req, res) => {
 
 const getUserById = (req, res) => {
   User.findById(req.params.userId)
-    .then((users) => res.send({ data: users }))
+    .then((users) => {
+      if (!users) {
+        throw new mongoose.Error.DocumentNotFoundError();
+      }
+      res.send({ data: users });
+    })
     .catch((err) => {
-      if (err.name === 'CastError') {
+      if (err.name === 'DocumentNotFoundError') {
         res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Пользователь не найден' });
       } else {
         res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
