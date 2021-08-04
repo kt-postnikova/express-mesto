@@ -38,13 +38,15 @@ const deleteCard = (req, res) => {
   Card.findByIdAndDelete(req.params.cardId)
     .then((card) => {
       if (!card) {
-        throw new mongoose.Error.CastError();
+        throw new mongoose.Error.DocumentNotFoundError();
       }
       res.send({ data: card });
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Карточка не найдена' });
+      if (err.name === 'DocumentNotFoundError') {
+        res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Карточка не найдена' });
+      } else if (err.name === 'CastError') {
+        res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Отправлен некорректный запрос' });
       } else {
         res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
       }
@@ -55,12 +57,14 @@ const putLike = (req, res) => {
   Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id } }, { new: true })
     .then((card) => {
       if (!card) {
-        throw new mongoose.Error.CastError();
+        throw new mongoose.Error.DocumentNotFoundError();
       }
       res.send({ data: card });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
+        res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Отправлен некорректный запрос' });
+      } else if (err.name === 'DocumentNotFoundError') {
         res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Карточка не найдена' });
       } else {
         res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
@@ -77,7 +81,9 @@ const deleteLike = (req, res) => {
       res.send({ data: card });
     })
     .catch((err) => {
-      if (err.name === 'DocumentNotFoundError') {
+      if (err.name === 'CastError') {
+        res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Отправлен некорректный запрос' });
+      } else if (err.name === 'DocumentNotFoundError') {
         res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Карточка не найдена' });
       } else {
         res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
