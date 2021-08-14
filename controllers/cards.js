@@ -1,22 +1,17 @@
-const mongoose = require('mongoose');
 const Card = require('../models/card');
-const { NOT_FOUND_STATUS_CODE, BAD_REQUEST_STATUS_CODE, SERVER_ERROR_STATUS_CODE } = require('../errors/errors');
+const { BAD_REQUEST_STATUS_CODE, SERVER_ERROR_STATUS_CODE } = require('../errors/errors');
+const ForbiddenError = require('../errors/ForbiddenError');
+const NotFoundError = require('../errors/NotFoundError');
 
-const getCards = (req, res) => {
+const getCards = (req, res, next) => {
   Card.find({})
     .then((cards) => {
       if (cards.length === 0) {
-        throw new mongoose.Error.DocumentNotFoundError();
+        throw new NotFoundError('Карточки не найдены');
       }
       res.send({ data: cards });
     })
-    .catch((err) => {
-      if (err.name === 'DocumentNotFoundError') {
-        res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Карточки не найдены' });
-      } else {
-        res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
-      }
-    });
+    .catch(next);
 };
 
 const createCard = (req, res) => {
@@ -35,18 +30,27 @@ const createCard = (req, res) => {
 };
 
 const deleteCard = (req, res) => {
-  Card.findByIdAndDelete(req.params.cardId)
+  const userId = req.user._id;
+  const { cardId } = req.params;
+  Card.findById(cardId)
     .then((card) => {
-      if (!card) {
-        throw new mongoose.Error.DocumentNotFoundError();
+      if (card.owner.toString() === userId) {
+        Card.findByIdAndDelete(req.params.cardId)
+          .then((deletedCard) => {
+            if (!deletedCard) {
+              throw new NotFoundError('Карточка не найдена');
+            }
+            res.send({ data: deletedCard });
+          });
+      } else {
+        throw new ForbiddenError('Нет доступа к данным');
       }
-      res.send({ data: card });
     })
     .catch((err) => {
-      if (err.name === 'DocumentNotFoundError') {
-        res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Карточка не найдена' });
-      } else if (err.name === 'CastError') {
+      if (err.name === 'CastError') {
         res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Отправлен некорректный запрос' });
+      } else if (err.statusCode === 403) {
+        res.status(403).send({ message: 'Нет доступа к данным' });
       } else {
         res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
       }
@@ -57,15 +61,13 @@ const putLike = (req, res) => {
   Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id } }, { new: true })
     .then((card) => {
       if (!card) {
-        throw new mongoose.Error.DocumentNotFoundError();
+        throw new NotFoundError('Карточка не найдена');
       }
       res.send({ data: card });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Отправлен некорректный запрос' });
-      } else if (err.name === 'DocumentNotFoundError') {
-        res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Карточка не найдена' });
       } else {
         res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
       }
@@ -76,15 +78,13 @@ const deleteLike = (req, res) => {
   Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
     .then((card) => {
       if (!card) {
-        throw new mongoose.Error.DocumentNotFoundError();
+        throw new NotFoundError('Карточка не найдена');
       }
       res.send({ data: card });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Отправлен некорректный запрос' });
-      } else if (err.name === 'DocumentNotFoundError') {
-        res.status(NOT_FOUND_STATUS_CODE).send({ message: 'Карточка не найдена' });
       } else {
         res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
       }

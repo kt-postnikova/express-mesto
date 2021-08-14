@@ -19,6 +19,12 @@
     "react"
   ],
   "rules": {
-    "no-underscore-dangle": "off"
+    "no-underscore-dangle": "off",
+    "object-curly-newline": [
+      "error",
+      {
+        "multiline": true
+      }
+    ]
   }
 }
