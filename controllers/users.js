@@ -1,9 +1,11 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-const { BAD_REQUEST_STATUS_CODE, SERVER_ERROR_STATUS_CODE } = require('../errors/errors');
 const NotFoundError = require('../errors/NotFoundError');
 const ConflictError = require('../errors/ConflictError');
+const BadRequestError = require('../errors/BadRequestError');
+
+const { JWT_SECRET = 'dev-key' } = process.env;
 
 const getUsers = (req, res, next) => {
   User.find({})
@@ -17,7 +19,7 @@ const getUsers = (req, res, next) => {
 };
 
 const getUserById = (req, res, next) => {
-  User.findById(req.params.userId)
+  User.findById(req.params.id)
     .then((users) => {
       if (!users) {
         throw new NotFoundError('Пользователь не найден');
@@ -31,15 +33,20 @@ const createUser = (req, res, next) => {
   const { name, email, password, about, avatar } = req.body;
 
   bcrypt.hash(password, 10)
-    .then((hash) => User.create({ name, email, password: hash, about, avatar }))
-    .then((user) => res.send({ data: user }))
+    .then((hash) => User.create({ email, password: hash, name, about, avatar }))
+    .then((user) => res.send(
+      {
+        email: user.email,
+        name: user.name,
+        about: user.about,
+        avatar: user.avatar,
+      },
+    ))
     .catch((err) => {
       if (err.name === 'MongoError' && err.code === 11000) {
         throw new ConflictError('Пользователь с таким email уже существует');
       } else if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Переданы некорректные данные' });
-      } else {
-        res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
+        throw new BadRequestError('Переданы некорректные данные');
       }
     })
     .catch(next);
@@ -50,7 +57,7 @@ const login = (req, res, next) => {
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, { expiresIn: '7d' });
 
       res.cookie('jwt', token, { maxAge: 3600000, httpOnly: true }).send({ token });
     })
@@ -64,9 +71,7 @@ const updateUserProfile = (req, res) => {
     .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Переданы некорректные данные' });
-      } else {
-        res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
+        throw new BadRequestError('Переданы некорректные данные');
       }
     });
 };
@@ -78,9 +83,7 @@ const updateUserAvatar = (req, res) => {
     .then((avatar) => res.send({ data: avatar }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST_STATUS_CODE).send({ message: 'Переданы некорректные данные' });
-      } else {
-        res.status(SERVER_ERROR_STATUS_CODE).send({ message: 'Произошла ошибка' });
+        throw new BadRequestError('Переданы некорректные данные');
       }
     });
 };
