@@ -30,11 +30,11 @@ const createCard = (req, res, next) => {
 
 const deleteCard = (req, res, next) => {
   const userId = req.user._id;
-  const { cardId } = req.params;
-  Card.findById(cardId)
+  const { id } = req.params;
+  Card.findById(id)
     .then((card) => {
       if (card.owner.toString() === userId) {
-        Card.findByIdAndDelete(req.params.cardId)
+        Card.findByIdAndDelete(req.params.id)
           .then((deletedCard) => {
             if (!deletedCard) {
               throw new NotFoundError('Карточка не найдена');
@@ -51,6 +51,7 @@ const deleteCard = (req, res, next) => {
       } else if (err.statusCode === 403) {
         throw new ForbiddenError('Нет доступа к данным');
       }
+      next();
     })
     .catch(next);
 };
@@ -69,12 +70,13 @@ const putLike = (req, res, next) => {
       } else if (err.statusCode === 404) {
         throw new NotFoundError('Карточка не найдена');
       }
+      next();
     })
     .catch(next);
 };
 
 const deleteLike = (req, res, next) => {
-  Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
+  Card.findByIdAndUpdate(req.params.id, { $pull: { likes: req.user._id } }, { new: true })
     .then((card) => {
       if (!card) {
         throw new NotFoundError('Карточка не найдена');
@@ -84,7 +86,10 @@ const deleteLike = (req, res, next) => {
     .catch((err) => {
       if (err.name === 'CastError') {
         throw new BadRequestError('Переданы некорректные данные');
+      } else if (err.statusCode === 404) {
+        throw new NotFoundError('Карточка не найдена');
       }
+      next();
     })
     .catch(next);
 };
