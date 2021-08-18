@@ -10,6 +10,7 @@ const cardsRouter = require('./routes/card');
 const { login, createUser } = require('./controllers/users');
 const auth = require('./middlewares/auth');
 const { loginValidator, registrationValidator } = require('./middlewares/validation');
+const NotFoundError = require('./errors/NotFoundError');
 
 const { PORT = 3000 } = process.env;
 
@@ -27,8 +28,8 @@ app.use(auth);
 app.use('/', userRouter);
 app.use('/', cardsRouter);
 
-app.use('*', (req, res) => {
-  res.status(404).send({ message: 'Запрашиваемый ресурс не найден' });
+app.use('*', () => {
+  throw new NotFoundError('Запрашиваемый ресурс не найден');
 });
 
 app.use(errors());
