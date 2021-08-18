@@ -48,6 +48,7 @@ const createUser = (req, res, next) => {
       } else if (err.name === 'ValidationError') {
         throw new BadRequestError('Переданы некорректные данные');
       }
+      next();
     })
     .catch(next);
 };
@@ -64,7 +65,7 @@ const login = (req, res, next) => {
     .catch(next);
 };
 
-const updateUserProfile = (req, res) => {
+const updateUserProfile = (req, res, next) => {
   const { name, about } = req.body;
 
   User.findByIdAndUpdate(req.user._id, { name, about }, { new: true, runValidators: true })
@@ -73,19 +74,20 @@ const updateUserProfile = (req, res) => {
       if (err.name === 'ValidationError') {
         throw new BadRequestError('Переданы некорректные данные');
       }
-    });
+    })
+    .catch(next);
 };
 
-const updateUserAvatar = (req, res) => {
-  const { userAvatar } = req.body;
-
-  User.findByIdAndUpdate(req.user._id, { userAvatar }, { new: true, runValidators: true })
-    .then((avatar) => res.send({ data: avatar }))
+const updateUserAvatar = (req, res, next) => {
+  const { avatar } = req.body;
+  User.findByIdAndUpdate(req.user._id, { avatar }, { new: true, runValidators: true })
+    .then((userAvatar) => res.send({ data: userAvatar }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
         throw new BadRequestError('Переданы некорректные данные');
       }
-    });
+    })
+    .catch(next);
 };
 
 const getUserInfo = (req, res, next) => {
@@ -97,7 +99,7 @@ const getUserInfo = (req, res, next) => {
 /* Метод для теста ошибок */
 
 // const deleteUser = (req, res, next) => {
-//   User.findByIdAndDelete(req.params.userId)
+//   User.findByIdAndDelete(req.params.id)
 //     .then((user) => {
 //       if (!user) {
 //         throw new NotFoundError('Пользователь не найден');
