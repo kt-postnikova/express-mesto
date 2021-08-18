@@ -7,10 +7,11 @@ const {
   updateUserProfile,
   updateUserAvatar,
 } = require('../controllers/users');
+const { idValidator } = require('../middlewares/validation');
 
 usersRouter.get('/users', getUsers);
 usersRouter.get('/users/me', getUserInfo);
-usersRouter.get('/users/:userId', getUserById);
+usersRouter.get('/users/:id', idValidator, getUserById);
 // usersRouter.delete('/users/:userId', deleteUser);
 usersRouter.patch('/users/me', updateUserProfile);
 usersRouter.patch('/users/me/avatar', updateUserAvatar);
