@@ -1,15 +1,19 @@
 const jwt = require('jsonwebtoken');
-const { UNAUTHORIZED_STATUS_CODE } = require('../errors/errors');
+const UnauthorizedError = require('../errors/UnauthorizedError');
+
+const { JWT_SECRET = 'dev-key' } = process.env;
 
 module.exports = (req, res, next) => {
-  const { token } = req.headers;
+  const { authorization } = req.headers;
+
+  const token = authorization.replace('Bearer ', '');
   let playload;
+
   try {
-    playload = jwt.verify(token, 'some-secret-key');
+    playload = jwt.verify(token, JWT_SECRET);
   } catch (err) {
-    return res.status(UNAUTHORIZED_STATUS_CODE).send({ message: 'Необходима авторизация' });
+    throw new UnauthorizedError('Необходимо авторизоваться');
   }
   req.user = playload;
   next();
-  return undefined;
 };
